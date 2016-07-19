@@ -21,8 +21,6 @@ window.cancelRequestAnimFrame = (function () {
 })();
 //DO NOT TOUCH CODE ABOVE
 
-//console.log('Holla');
-
 //Step 01 ..jkh.. create game canvas and track mouse position
 var gameCanvas = document.getElementById("canvas");
 //store html5 canvas tag into a JS variable
@@ -61,7 +59,7 @@ var ball={}; //ball object -- curly brackets
 ball = {
     x: 50,
     y: 50,
-    r: 10,
+    r: 5,
     c: "#ffffff",
     vx: 4, //velocity x
     vy: 8, //velocity y
@@ -150,7 +148,7 @@ function btnClick(evt){
     
     //user clicked start button
     if (mx >= startBtn.x && mx <= startBtn.x + startBtn.w){
-       if (my >= startBtn.y && startBtn.y + startBtn.h){
+       if (my >= startBtn.y && my <= startBtn.y + startBtn.h){
 //           console.log ("start button clicked");
            //delete the start button
            startBtn = {};
@@ -159,13 +157,30 @@ function btnClick(evt){
            animloop();
        } 
     }
+if (flagGameOver == 1){
+   if (mx >= restartBtn.x && mx <= restartBtn.x + restartBtn.w){
+       if (my >= restartBtn.y && restartBtn.y + restartBtn.h){
+           //reset my game
+           points = 0;
+           ball.x = 50; //reset ball location when game is restarted
+           ball.y = 50;
+           ball.vx = 4;
+           ball.vy = 8;
+           
+           flagGameOver = 0;
+           //start game
+           animloop();
+          
+       } 
+    }        
+}    
 }
 
 //function for running the whole game animation
 var init; //variable to initialize animation
 function animloop(){
     init = requestAnimFrame(animloop);
-    refreshCanvasFun();
+    refreshCanvasFun(); //used to make the canvas update and work
     
 }
 
@@ -203,8 +218,10 @@ function checkCollision(){
         //ball goes off top or bottom of screen 
         if(ball.y + ball.r > H){
             //game over 
+            gameOver();
         }else if(ball.y < 0){
-            //game over 
+            //game over
+            gameOver();
         }//ball hits side
             if(ball.x + ball.r > W){
                 ball.vx = -ball.vx;
@@ -214,7 +231,47 @@ function checkCollision(){
                 ball.x = ball.r;
             }      
         }
+    //sparkles
+    if (flagCollision == 1){
+        for(var k = 0; k < particleCount; k++){
+            particles.push(new createParticles(particlePos.x, particlePos.y, particleDir));
+        }
     }
+    //emit particles 
+    emitParticles();
+    //reset of flag collision 
+    flagCollision = 0;
+    }
+
+function createParticles(x, y, d) {
+    this.x = x || 0;
+    this.y = y || 0;
+    
+    this.radius = 2;
+    
+    this.vx = -1.5 + Math.random()*3;
+    this.vy = d * Math.random()*1.5;
+}
+
+function emitParticles(){
+    for(var j = 0; j < particles.length; j++){
+        par = particles[j];
+        
+        ctx.beginPath();
+        ctx.fillStyle = '#ffffff';
+        if(par.radius > 0){
+            ctx.arc(par.x, par.y, par.radius, 0, Math.PI*2, false); // makes particle
+        }
+        ctx.fill();
+        
+        par.x += par.vx;
+        par.y += par.vy;
+        
+        //reduce particle size
+        par.radius = Math.max(par.radius - 0.05, 0.0);
+    }
+}
+
 
 var paddleHit; //which paddle was hit 0=top 1=bottom 
 function collides(b, p){
@@ -233,15 +290,103 @@ function collides(b, p){
 
 var collisionSound = document.getElementById("collide");
 function collideAction(b, p){
-//    console.log("sound and then bounce");
+   
+//    console.log("sound and then bounce"); //used to make sure the function is being called
     if (collisionSound){
     collisionSound.play();
     }
+    
     //reverse ball y velocity
     ball.vy = -ball.vy;
+    
+    //Sparkles
+    if(paddleHit == 0){
+       //ball hit top paddle 
+        ball.y = p.y - p.h;
+        particlePos.y = ball.y + ball.r;
+        particleDir = -1;
+        
+    }else if(paddleHit == 1){
+       //ball hit bottom paddle 
+        ball.y = p.y + ball.r;
+        particlePos.y = ball.y - ball.r;
+        particleDir = 1;
+    }
+    
     //increase score by 1
     points++;
+    
+    increaseSpd();
+    
+    //sparkles
+    particlePos.x = ball.x;
+    
+    flagCollision = 1;
+    
 }
+
+var flagCollision = 0; //when ball collides with paddle for particles
+var particles = []; // array for particles 
+var particlePos = {}; //object to contain the position of collision
+var particleDir = 1; // va to control the direction of the particles
+var particleCount = 20; // number of particles
+
+
+function increaseSpd(){
+//increase ball speed when after every four points
+    if (points % 4 === 0){
+        if(Math.abs(ball.vx) < 15){
+    
+        ball.vx += (ball.vx < 0) ? -1 : 1;
+        ball.vy += (ball.vy < 0) ? -2 : 2;
+                    
+        }
+    }
+}
+
+//Function for when the ball goes off the screen.
+var flagGameOver = 0;
+function gameOver() {
+//    console.log('game is over'); //used to check that function is being called correctly
+    //Display Final Score
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '20px Arial, san-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText("Game Over - You Scored: " + points + " points!", W/2, H/2 + 25);
+   
+    //Stop the animation and game  
+    cancelRequestAnimFrame(init);
+    
+    //Display replay button
+    restartBtn.draw();
+    
+    //set the game over flag
+    flagGameOver = 1;
+    
+}
+
+var restartBtn ={}; //restart button object
+restartBtn = {
+    w: 100,
+    h: 50,
+    x: W / 2 - 50,
+    y: H / 2 - 50,
+    
+    draw: function(){
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.lineWidth = "2";
+        ctx.strokeRect(this.x, this.y, this.w, this.h);
+        
+        ctx.font = "18px Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillText("Replay?", W / 2, H / 2 - 25);
+    }
+}
+
+
     
 
 
