@@ -61,8 +61,8 @@ ball = {
     y: 50,
     r: 5,
     c: "#ffffff",
-    vx: 4, //velocity x
-    vy: 8, //velocity y
+    vx: 8, //velocity x
+    vy: 4, //velocity y
     
     draw: function(){
         ctx.beginPath();
@@ -79,7 +79,7 @@ startBtn = {
     w: 100,
     h: 50,
     x: W / 2 - 50,
-    y: H / 2 - 25,
+    y: H / 2 - 150,
     
     draw: function(){
         ctx.strokeStyle = "#FFFFFF";
@@ -90,51 +90,73 @@ startBtn = {
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillStyle = "#FFFFFF";
-        ctx.fillText("Start", W / 2, H / 2);
+        ctx.fillText("Start", W / 2, H / 2 - 125);
     }
 }
 startBtn.draw();
+
+var instructions = {};
+instructions = {
+    draw: function(){
+        ctx.font = "18px Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillText("Move the paddles to bounce the ball.", W/2, H/2);
+    }
+    
+}
+instructions.draw();
 
 //Step Five..jkh..placing score and points on canvas
 var points = 0; // game points
 function paintScore(){
     ctx.fillStyle = "#ffffff";
     ctx.font = "18px Arial, sans-serif";
-    ctx.textAlign = "left";
+    ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText("Score: " + points, 20, 20);
+    ctx.fillText("Score: " + points, W/2, 20);
     
 }
 paintScore();
 
 //Step six...jkh...place paddles top and bottom on canvas
-
+var paddleHeight = 150;
 function paddlePosition(TB) {
-    this.w = 150;
-    this.h = 5;
+    this.h = paddleHeight;
+    this.w = 5;
     
-    this.x = W/2 - this.w/2;
+    this.x = H/2 - this.h/2;
     
     if(TB == "top"){
-        this.y = 0;
+        this.x = 0;
     } else {
-        this.y = H - this.h;
+        this.x = W - this.w;
     }
 }
+
+
+
 var paddlesArray = []; //Paddles array
 paddlesArray.push(new paddlePosition("top"));
 paddlesArray.push(new paddlePosition("bottom"));
 //console.log("top paddle y is: " + paddlesArray[0].y);
 //console.log("bottom paddle y is: " + paddlesArray[1].y);
-
 function paintPaddles(){
     for(var lp = 0; lp < paddlesArray.length; lp++){
         p = paddlesArray[lp];
-        
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(p.x, p.y, p.w, p.h);
-        
+        if(lp == 0){
+            ctx.fillStyle = "#FE5F55";
+            ctx.fillRect(p.x, p.y, p.w, paddleHeight);
+
+        }else{
+            ctx.fillStyle = "#9381FF";
+            ctx.fillRect(p.x, p.y, p.w, paddleHeight);
+
+        }
+       
     }
+
 }
 paintPaddles();
 
@@ -164,8 +186,8 @@ if (flagGameOver == 1){
            points = 0;
            ball.x = 50; //reset ball location when game is restarted
            ball.y = 50;
-           ball.vx = 4;
-           ball.vy = 8;
+           ball.vx = 8;
+           ball.vy = 4;
            
            flagGameOver = 0;
            //start game
@@ -197,8 +219,9 @@ function update(){
     //move the paddles, track the mouse
     for (var lp = 0; lp < paddlesArray.length; lp++){
         p = paddlesArray[lp];
-        p.x = mouseObj.x - p.w/2;  
+        p.y = mouseObj.y - p.h/2;  
     }
+    paddlePosition();
     //move the ball
     ball.x += ball.vx;
     ball.y += ball.vy;
@@ -216,19 +239,19 @@ function checkCollision(){
         collideAction(ball, pBot);
     } else {
         //ball goes off top or bottom of screen 
-        if(ball.y + ball.r > H){
+        if(ball.x + ball.r > W){
             //game over 
             gameOver();
-        }else if(ball.y < 0){
+        }else if(ball.x < 0){
             //game over
             gameOver();
         }//ball hits side
-            if(ball.x + ball.r > W){
-                ball.vx = -ball.vx;
-                ball.x = W - ball.r;
-            }else if(ball.x - ball.r < 0){
-                ball.vx = -ball.vx;
-                ball.x = ball.r;
+            if(ball.y + ball.r > H){
+                ball.vy = -ball.vy;
+                ball.y = H - ball.r;
+            }else if(ball.y - ball.r < 0){
+                ball.vy = -ball.vy;
+                ball.y = ball.r;
             }      
         }
     //sparkles
@@ -249,8 +272,8 @@ function createParticles(x, y, d) {
     
     this.radius = 2;
     
-    this.vx = -1.5 + Math.random()*3;
-    this.vy = d * Math.random()*1.5;
+    this.vy = -1.5 + Math.random()*3;
+    this.vx = d * Math.random()*1.5;
 }
 
 function emitParticles(){
@@ -258,7 +281,8 @@ function emitParticles(){
         par = particles[j];
         
         ctx.beginPath();
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = 'rgb(' + Math.floor(Math.random() * 255) + ',' + Math.floor(Math.random() * 255) + ',' + Math.floor(Math.random() * 255) + ')';
+        // I read this about random color generation http://www.paulirish.com/2009/random-hex-color-code-snippets/
         if(par.radius > 0){
             ctx.arc(par.x, par.y, par.radius, 0, Math.PI*2, false); // makes particle
         }
@@ -275,11 +299,11 @@ function emitParticles(){
 
 var paddleHit; //which paddle was hit 0=top 1=bottom 
 function collides(b, p){
-    if(b.x + b.r >= p.x && b.x - b.r <= p.x + p.w){
-        if(b.y >= (p.y - p.h)&& p.y > 0){
+    if(b.y + b.r >= p.y && b.y - b.r <= p.y + p.h){
+        if(b.x >= (p.x - p.w)&& p.x > 0){
             paddleHit = 0;
             return true;
-        }else if(b.y <= p.h && p.y === 0){
+        }else if(b.x <= p.w && p.x === 0){
             paddleHit = 1;
             return true;
         }else{
@@ -297,19 +321,19 @@ function collideAction(b, p){
     }
     
     //reverse ball y velocity
-    ball.vy = -ball.vy;
+    ball.vx = -ball.vx;
     
     //Sparkles
     if(paddleHit == 0){
        //ball hit top paddle 
-        ball.y = p.y - p.h;
-        particlePos.y = ball.y + ball.r;
+        ball.x = p.x - p.w;
+        particlePos.x = ball.x + ball.r;
         particleDir = -1;
         
     }else if(paddleHit == 1){
        //ball hit bottom paddle 
-        ball.y = p.y + ball.r;
-        particlePos.y = ball.y - ball.r;
+        ball.x = p.x + ball.r;
+        particlePos.x = ball.x - ball.r + 5;
         particleDir = 1;
     }
     
@@ -319,7 +343,7 @@ function collideAction(b, p){
     increaseSpd();
     
     //sparkles
-    particlePos.x = ball.x;
+    particlePos.y = ball.y;
     
     flagCollision = 1;
     
@@ -339,10 +363,17 @@ function increaseSpd(){
     
         ball.vx += (ball.vx < 0) ? -1 : 1;
         ball.vy += (ball.vy < 0) ? -2 : 2;
-                    
+       
+        }
+        if (paddleHeight > 40){
+            paddleHeight = paddleHeight - 5;
+    
         }
     }
 }
+
+
+
 
 //Function for when the ball goes off the screen.
 var flagGameOver = 0;
